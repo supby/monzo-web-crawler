@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"declaration": true,
+    	"declarationMap": true,
+		"module": "commonjs",
+		"strict": true,
+		"baseUrl": "./",
+		"outDir": "build",
+		"allowJs": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"removeComments": true,
+		"experimentalDecorators": true,
+		"target": "es2018",
+		"emitDecoratorMetadata": true,
+		"moduleResolution": "node",
+		"importHelpers": true
+	},
+	"include": ["./src/**/*.ts"]
+}
