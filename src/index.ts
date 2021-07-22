@@ -1,8 +1,15 @@
 import { ContentDownloader } from "./services/contentDownloader";
 import { ContentParser } from "./services/contentParser";
+import { Crawler } from "./services/crawler";
 
-const s1 = new ContentDownloader();
-s1.getContent('https://monzo.com').then(async content => {
-    const s2 = new ContentParser(content);
-    console.log((await s2.getLinks()).map(l => l.text))
-})
+const downloader = new ContentDownloader();
+const paerser = new ContentParser({
+    baseHostname: 'monzo.com',
+    baseProtocol: 'https'
+});
+const crawler = new Crawler({
+    startUrl: 'https://monzo.com'
+}, downloader, paerser);
+
+crawler.crawl();
+

@@ -5,29 +5,49 @@ export type HTMLLink = {
     url: string;
 }
 
+export type ContentParserOptions = {
+    baseHostname: string;
+    baseProtocol: string;
+}
+
 export interface IContentParser {
     getLinks(content: string): Promise<HTMLLink[]>;
     getURLs(content: string): Promise<string[]>;
 }
 
 export class ContentParser implements IContentParser {
-    doc: HTMLElement;
+    private _options: ContentParserOptions;
 
-    constructor(content: string) {
-        this.doc = parse(content);
+    constructor(options: ContentParserOptions) {
+        this._options = options;
     }
 
-    getLinks(): Promise<HTMLLink[]> {
-        
+    getLinks(content: string): Promise<HTMLLink[]> {
         return new Promise((resolve, reject) => { 
-
-            const links = this.doc.querySelectorAll('a').map(link => ({ text: link.text, url: link.getAttribute('href') || '' }));
-            resolve(links)
-
+            const doc = parse(content);
+            const links = doc.querySelectorAll('a')
+                .map(link => ({ text: link.text.trim(), url: link.getAttribute('href') || '' }));
+            resolve(links);
         });
     }
 
-    getURLs(content: string): Promise<string[]> {
+    async getURLs(content: string): Promise<string[]> {
+        const textUrls = await this._getTextURLs(content);
+        const links = await this.getLinks(content);
+
+        return links
+        .filter(l => !this.isURL(l.url))
+        .map(l => {
+            return `${this._options.baseProtocol}://${this._options.baseHostname}${l.url}`;
+        }).concat(textUrls);
+    }
+
+    private isURL(url: string) {
+        const regexp = /(\bhttps?:\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+        return (url.match(regexp) || []).length > 0;
+    }
+
+    private _getTextURLs(content: string): Promise<string[]> {
         const regexp = /(\bhttps?:\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
         return new Promise((resolve, reject) => { 
             const matches = content.match(regexp);
