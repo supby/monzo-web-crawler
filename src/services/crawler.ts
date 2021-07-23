@@ -7,7 +7,12 @@ export type CrawlerOptions = {
 }
 
 export interface ICrawler {
-    crawl(): Promise<void>;
+    crawl(): Promise<CrawlerURLResult[]>;
+}
+
+export type CrawlerURLResult = {
+    url: string;
+    links: HTMLLink[];
 }
 
 export class Crawler implements ICrawler {
@@ -27,36 +32,29 @@ export class Crawler implements ICrawler {
         this._baseHostname = new URL(options.startUrl).hostname;
     }
 
-    async crawl(): Promise<void> {
+    async crawl(): Promise<CrawlerURLResult[]> {
         const visitedUrls = new Set<string>();
-        await this._crawl(this._options.startUrl, visitedUrls);
+        const res: CrawlerURLResult[] = [];
+        await this._crawl(this._options.startUrl, visitedUrls, res);
+        console.log(`res.length: ${res.length}`);
+        return res;
     }
 
-    private async _crawl(url: string, visitedUrls: Set<string>): Promise<void> {
+    private async _crawl(url: string, visitedUrls: Set<string>, res: CrawlerURLResult[]): Promise<void> {
         if (visitedUrls.has(url)) return;
-        
-        console.log('\x1b[32m%s\x1b[0m', `Visiting URL: '${url}'`);
 
         visitedUrls.add(url);
 
         const content = await this._contentDownloader.getContent(url);
         const links = await this._contentParser.getLinks(content);
-        this._printLinks(links);
+        
+        res.push({ url, links});
+        console.log('\x1b[32m%s\x1b[0m', `Visited INSIDE URL: '${url}'`);
+        //console.log(`res.length: '${res.length}'`);
 
-        (await this._contentParser.getURLs(content))
+        const baseURLObj = new URL(url);
+        (await this._contentParser.getURLs(`${baseURLObj.protocol}//${baseURLObj.hostname}`, content))
             .filter(u => new URL(u).hostname == this._baseHostname)
-            .forEach(u => this._crawl(u, visitedUrls))
-    }
-
-    private _printLinks(links: HTMLLink[]): void {
-        if (!links || links.length == 0) {
-            console.log('No links on the page.');
-            return;
-        }
-
-        console.log('Links:')
-        for (const link of links) {
-            console.log(link);
-        }
+            .forEach(async u => await this._crawl(u, visitedUrls, res))
     }
 }

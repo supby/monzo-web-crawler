@@ -3,8 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContentParser = void 0;
 const node_html_parser_1 = require("node-html-parser");
 class ContentParser {
-    constructor(options) {
-        this._options = options;
+    constructor() {
+        this.urlRegexp = /(\bhttps?:\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
     }
     getLinks(content) {
         return new Promise((resolve, reject) => {
@@ -14,23 +14,17 @@ class ContentParser {
             resolve(links);
         });
     }
-    async getURLs(content) {
+    async getURLs(baseURL, content) {
         const textUrls = await this._getTextURLs(content);
         const links = await this.getLinks(content);
-        return links
-            .filter(l => !this.isURL(l.url))
-            .map(l => {
-            return `${this._options.baseProtocol}://${this._options.baseHostname}${l.url}`;
-        }).concat(textUrls);
-    }
-    isURL(url) {
-        const regexp = /(\bhttps?:\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
-        return (url.match(regexp) || []).length > 0;
+        const res = links
+            .map(l => new URL(l.url, baseURL).href)
+            .concat(textUrls);
+        return res;
     }
     _getTextURLs(content) {
-        const regexp = /(\bhttps?:\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
         return new Promise((resolve, reject) => {
-            const matches = content.match(regexp);
+            const matches = content.match(this.urlRegexp);
             if (!matches) {
                 resolve([]);
                 return;

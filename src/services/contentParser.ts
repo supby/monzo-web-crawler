@@ -5,22 +5,13 @@ export type HTMLLink = {
     url: string;
 }
 
-export type ContentParserOptions = {
-    baseHostname: string;
-    baseProtocol: string;
-}
-
 export interface IContentParser {
     getLinks(content: string): Promise<HTMLLink[]>;
-    getURLs(content: string): Promise<string[]>;
+    getURLs(baseURL: string, content: string): Promise<string[]>;
 }
 
 export class ContentParser implements IContentParser {
-    private _options: ContentParserOptions;
-
-    constructor(options: ContentParserOptions) {
-        this._options = options;
-    }
+    private urlRegexp = /(\bhttps?:\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
 
     getLinks(content: string): Promise<HTMLLink[]> {
         return new Promise((resolve, reject) => { 
@@ -31,26 +22,22 @@ export class ContentParser implements IContentParser {
         });
     }
 
-    async getURLs(content: string): Promise<string[]> {
+    async getURLs(baseURL: string, content: string): Promise<string[]> {
         const textUrls = await this._getTextURLs(content);
         const links = await this.getLinks(content);
 
-        return links
-        .filter(l => !this.isURL(l.url))
-        .map(l => {
-            return `${this._options.baseProtocol}://${this._options.baseHostname}${l.url}`;
-        }).concat(textUrls);
-    }
+        const res = links
+            .map(l => new URL(l.url, baseURL).href)
+            .concat(textUrls);
 
-    private isURL(url: string) {
-        const regexp = /(\bhttps?:\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
-        return (url.match(regexp) || []).length > 0;
+        //res.forEach(u => console.log(u));
+
+        return res;
     }
 
     private _getTextURLs(content: string): Promise<string[]> {
-        const regexp = /(\bhttps?:\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
         return new Promise((resolve, reject) => { 
-            const matches = content.match(regexp);
+            const matches = content.match(this.urlRegexp);
             if (!matches) {
                 resolve([])
                 return;
