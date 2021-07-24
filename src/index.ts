@@ -8,9 +8,10 @@ const crawler = new Crawler({
     startUrl: 'https://monzo.com'
 }, downloader, paerser);
 
-crawler.crawl().then(data => console.log(data))
+crawler.crawl().then(data => printData(data));
 
 function printData(data: CrawlerURLResult[]) {
+    console.log('======= Result ======');
     for (const urlData of data) {
         console.log('\x1b[32m%s\x1b[0m', `Visited URL: '${urlData.url}'`);
         for (const link of urlData.links) {

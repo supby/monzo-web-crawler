@@ -13,22 +13,23 @@ class Crawler {
         const visitedUrls = new Set();
         const res = [];
         await this._crawl(this._options.startUrl, visitedUrls, res);
-        console.log(`res.length: ${res.length}`);
         return res;
     }
     async _crawl(url, visitedUrls, res) {
         if (visitedUrls.has(url))
-            return true;
+            return;
         visitedUrls.add(url);
         const content = await this._contentDownloader.getContent(url);
         const links = await this._contentParser.getLinks(content);
         res.push({ url, links });
-        console.log('\x1b[32m%s\x1b[0m', `Visited INSIDE URL: '${url}'`);
+        console.log('\x1b[32m%s\x1b[0m', `Processing URL: '${url}'`);
         const baseURLObj = new url_1.URL(url);
-        (await this._contentParser.getURLs(`${baseURLObj.protocol}//${baseURLObj.hostname}`, content))
-            .filter(u => new url_1.URL(u).hostname == this._baseHostname)
-            .forEach(async (u) => await this._crawl(u, visitedUrls, res));
-        return true;
+        const urls = await this._contentParser.getURLs(`${baseURLObj.protocol}//${baseURLObj.hostname}`, content);
+        for (const urlDoc of urls) {
+            if (new url_1.URL(urlDoc).hostname != this._baseHostname)
+                continue;
+            await this._crawl(urlDoc, visitedUrls, res);
+        }
     }
 }
 exports.Crawler = Crawler;

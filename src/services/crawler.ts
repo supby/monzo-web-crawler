@@ -36,7 +36,6 @@ export class Crawler implements ICrawler {
         const visitedUrls = new Set<string>();
         const res: CrawlerURLResult[] = [];
         await this._crawl(this._options.startUrl, visitedUrls, res);
-        console.log(`res.length: ${res.length}`);
         return res;
     }
 
@@ -49,12 +48,15 @@ export class Crawler implements ICrawler {
         const links = await this._contentParser.getLinks(content);
         
         res.push({ url, links});
-        console.log('\x1b[32m%s\x1b[0m', `Visited INSIDE URL: '${url}'`);
-        //console.log(`res.length: '${res.length}'`);
+        console.log('\x1b[32m%s\x1b[0m', `Processing URL: '${url}'`);
 
-        const baseURLObj = new URL(url);
-        (await this._contentParser.getURLs(`${baseURLObj.protocol}//${baseURLObj.hostname}`, content))
-            .filter(u => new URL(u).hostname == this._baseHostname)
-            .forEach(async u => await this._crawl(u, visitedUrls, res))
+        const baseURLObj = new URL(url);        
+        const urls = await this._contentParser.getURLs(`${baseURLObj.protocol}//${baseURLObj.hostname}`, content);
+
+        for (const urlDoc of urls) {
+            if (new URL(urlDoc).hostname != this._baseHostname) continue;
+
+            await this._crawl(urlDoc, visitedUrls, res);
+        }
     }
 }
