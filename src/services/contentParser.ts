@@ -30,8 +30,6 @@ export class ContentParser implements IContentParser {
             .map(l => new URL(l.url, baseURL).href)
             .concat(textUrls);
 
-        //res.forEach(u => console.log(u));
-
         return res;
     }
 
